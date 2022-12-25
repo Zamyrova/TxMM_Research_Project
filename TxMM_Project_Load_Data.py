@@ -164,7 +164,7 @@ def preprocess_data(df):
     df_final = df_final.drop(['date', 'date2', 'details', 'release_date'], axis=1)
     
     return df_final, df_with_dates
-
+'''
 def get_gender_label(text):
     # 0 neutral
     # 1 female
@@ -198,7 +198,7 @@ def get_gender_label(text):
     patterns = '|'.join([female_patterns, male_patterns, neutral_patterns])
     
     return re.findall(patterns, text, re.IGNORECASE)
-
+'''
 def get_label_set(df, df_dates, size=50):
     
     def check_non_neutral(matches, gender = 1):
@@ -299,10 +299,10 @@ def main():
     
     label_set = get_label_set(toys_for_class, toys_with_dates)
     '''
-    get_manual_labels('Project_manual_labels3.txt')
+    get_manual_labels('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt')
         
     
-    print(get_manual_labels('Project_manual_labels3.txt')[-16])
+    print(get_manual_labels('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt')[-16])
     
     
     
