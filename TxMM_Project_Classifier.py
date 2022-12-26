@@ -17,6 +17,7 @@ from statistics import mean
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import liwc
 from TxMM_Project_Load_Data import get_manual_labels 
 nltk.download('words')
 nltk.download('stopwords')
@@ -54,8 +55,9 @@ def load_tr_ts_data(file, df_path):
     
 
 def main(): 
-    X_train, y_train, X_test, y_test = load_tr_ts_data('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt', '/Users/mariiazamyrova/Downloads/toys_for_class.csv')
-    print(X_train[0])
+    #X_train, y_train, X_test, y_test = load_tr_ts_data('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt', '/Users/mariiazamyrova/Downloads/toys_for_class.csv')
+    s = ['ant', 'aunt', 'auntie']
+    parse, category_names = liwc.load_token_parser('LIWC2007_English100131.dic')
     
 if __name__ == '__main__':
     main()
