@@ -120,7 +120,7 @@ def validate(X, y):
 
         # Classify and add the scores to be able to average later
         y_pred = classify(X_train, y_train, X_val)
-        scores.append(list(skmr.precision_recall_fscore_support(y_val, y_pred)[:3]))
+        scores.append(np.array(list(skmr.precision_recall_fscore_support(y_val, y_pred)))[:3])
     return np.mean(np.array(scores), axis=0)
 
 def info_extractor_eval(file, df_path, df_with_dates):
@@ -153,17 +153,18 @@ def info_extractor_eval(file, df_path, df_with_dates):
             
     
 def main(): 
-    #X_train, X_test, y_train, y_test = load_tr_ts_data('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt',
-    #                                                   '/Users/mariiazamyrova/Downloads/toys_for_class.csv',
-    #                                                   '/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
-    #validation = validate(X_train, y_train)
-    #print(validation)
-    
-    prec, rec, f1 = info_extractor_eval('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt',
+    X_train, X_test, y_train, y_test = load_tr_ts_data('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt',
                                                        '/Users/mariiazamyrova/Downloads/toys_for_class.csv',
                                                        '/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
+    #validation = validate(X_train, y_train)
+    #print(validation)
+    print(np.array(list(skmr.precision_recall_fscore_support(y_train[:len(y_test)], y_test)))[0])
     
-    print(prec, rec, f1)
+    #prec, rec, f1 = info_extractor_eval('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt',
+    #                                                   '/Users/mariiazamyrova/Downloads/toys_for_class.csv',
+    #                                                   '/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
+    
+    #print(prec, rec, f1)
     
     
 if __name__ == '__main__':

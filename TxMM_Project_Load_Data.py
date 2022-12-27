@@ -21,7 +21,7 @@ import pickle
 inflecter = inflect.engine()
 
 kid_nouns = ['kid', 'child', 'youngster', 'baby', 'teen', 'infant', 'toddler',
-             'little one']
+             'little one', 'year olds', 'young']
 boy_nouns = list(map(lambda x: x.name()[:-5], wn.synsets('boy')[:-1]))
 girl_nouns = list(map(lambda x: x.name()[:-5],wn.synsets('girl')[:-1]))
 
@@ -35,9 +35,9 @@ male_nouns = ['male', 'man', 'prince', 'father', 'dad', 'boyfriend', 'him',
              'daddy', 'papa', 'husband', 'nephew', 'mister', 'guy']+boy_nouns
 male_nouns = [w.replace('_', ' ') for w in male_nouns]
 male_nouns += [inflecter.plural(w) for w in male_nouns]
-neutral_nouns = kid_nouns+['person', 'adult', 'cousin',
+neutral_nouns = kid_nouns+['person', 'adult', 'cousin', 'age', 'family',
                           'parent', 'grandparent', 'sibling',
-                          'spouse', 'friend', 'fan', 'fiance', 'enthusiast']
+                          'spouse', 'friend', 'fan', 'fiance', 'enthusiast', 'everyone']
 neutral_nouns = [w.replace('_', ' ') for w in neutral_nouns]
 neutral_nouns += [inflecter.plural(w) for w in neutral_nouns]
 
@@ -186,7 +186,8 @@ def get_gender_label(text_set):
     
 
 def get_label_set(df, df_dates, size=50):
-    
+    label_set = get_manual_labels('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt')
+    indecies = [it[0] for it in label_set]
     def check_non_neutral(matches, gender = 1):
         words = []
         if gender==1:
@@ -224,7 +225,7 @@ def get_label_set(df, df_dates, size=50):
         while len(df_descrs_to_label)/size!=ind and i<len(df_filt):
             out = re.findall(pat, df_descrs_shuffle[i][1], flags=re.IGNORECASE, overlapped=True)
             #out = get_gender_label(df_descrs_shuffle[i][1])
-            if df_descrs_shuffle[i] not in df_descrs_to_label and df_descrs_shuffle[i][0] not in df_descrs_to_label:
+            if df_descrs_shuffle[i] not in df_descrs_to_label and df_descrs_shuffle[i][0] not in indecies:
                 if ind < 3:
                     out_neut = re.findall(filter_pattern_n, df_descrs_shuffle[i][1], flags=re.IGNORECASE, overlapped=True)
                     if len(out_neut)==0 and len(out)!=0: 
@@ -240,7 +241,6 @@ def get_label_set(df, df_dates, size=50):
                         print(df_descrs_to_label[-1][0], out)
                 
             i+=1
-    print(len(df_descrs_to_label))
     return df_descrs_to_label
 
 def get_manual_labels(file):
@@ -285,11 +285,16 @@ def main():
     
     label_set = get_label_set(toys_for_class, toys_with_dates)
     '''
-    get_manual_labels('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt')
-        
+    #get_manual_labels('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt')
+    #print(get_manual_labels('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt')[-16])
     
-    print(get_manual_labels('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt')[-16])
+    toys_for_class = pd.read_csv('/Users/mariiazamyrova/Downloads/toys_for_class.csv')
+    toys_with_dates = pd.read_csv('/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
+    label_set = get_label_set(toys_for_class, toys_with_dates, size=100)
     
+    with open('Project_manual_labels4.txt', 'w') as f:
+        for l in label_set:
+            f.write(str(l)+'\n')
     
     
     
