@@ -164,41 +164,13 @@ def preprocess_data(df):
     df_final = df_final.drop(['date', 'date2', 'details', 'release_date'], axis=1)
     
     return df_final, df_with_dates
-'''
+
 def get_gender_label(text):
     # 0 neutral
     # 1 female
     # -1 male
-    female_nouns_ptn = r'(?:\b'+('|'.join(female_nouns))+'\b)'
-    male_nouns_ptn = r'(?:\b'+('|'.join(male_nouns))+'\b)'
-    #female_adjs_ptn = r'(?:\b'+('|'.join(female_adjs))+'\b)'
-    #male_adjs_ptn = r'(?:\b'+('|'.join(male_adjs))+'\b)'
-    neutral_nouns_ptn = r'(?:\b'+('|'.join(neutral_nouns))+'\b)'
-    #neutral_adjs_ptn = r'(?:\b'+('|'.join(neutral_adjs))+'\b)'
-    noun_prefix = r'a|(?:\bthe\b)|(?:\byour\b)|(?:\ball\b)|(?:\bevery\b)|(?:\bany\b)|\w*'
     
-    female_patterns = ''.join([r'(?:\bfor\b)\s[', noun_prefix, r']*\s*', female_nouns_ptn, r'|', 
-                              female_nouns_ptn, r"\'s|", female_nouns_ptn,
-                              #r'|', female_adjs_ptn,
-                              r'|(?:\bnot\sfor\b)\s', male_nouns_ptn])
-    
-    male_patterns = ''.join([r'(?:\bfor\b)\s[', noun_prefix, r']*\s*', male_nouns_ptn, r'|', 
-                              male_nouns_ptn, r"\'s|", male_nouns_ptn,
-                              #r'|', male_adjs_ptn,
-                              r'|(?:\bnot\sfor\b)\s', female_nouns_ptn])
-    
-    neutral_patterns = ''.join([r'(?:\bfor\b)\s[', noun_prefix, r']*\s*', neutral_nouns_ptn, r'|', 
-                              neutral_nouns_ptn, r"\'s|", neutral_nouns_ptn,
-                              #r'|', neutral_adjs_ptn,
-                              r'|(?:\bfor\b)\s[', noun_prefix, r'|(?:\bboth\b)]*\s*', female_nouns_ptn,
-                              r'\s[(?:\bor\b)|(?:\band\b)]\s[', noun_prefix, r']*\s*', male_nouns_ptn,
-                              r'|(?:\bfor\b)\s[', noun_prefix, r'|(?:\bboth\b)]*\s*', male_nouns_ptn,
-                              r'\s[(?:\bor\b)|(?:\band\b)]\s[', noun_prefix, r']*\s*', female_nouns_ptn])
-    
-    patterns = '|'.join([female_patterns, male_patterns, neutral_patterns])
-    
-    return re.findall(patterns, text, re.IGNORECASE)
-'''
+
 def get_label_set(df, df_dates, size=50):
     
     def check_non_neutral(matches, gender = 1):

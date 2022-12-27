@@ -122,6 +122,25 @@ def validate(X, y):
         y_pred = classify(X_train, y_train, X_val)
         scores.append(list(skmr.precision_recall_fscore_support(y_val, y_pred)[:3]))
     return np.mean(np.array(scores), axis=0)
+
+def info_extractor_eval(info_pred, info_true):
+    TP, TN, FP, FN = 0
+    for pred, true in list(zip(info_pred, info_true)):
+        if len(true)==0:
+            if len(pred)==0: 
+                TN += 1
+            else: 
+                FP += 1
+        else:
+            if set(true).issubset(set(pred)):
+                TP += 1
+            else: 
+                FN += 1
+    precision = TP/(TP+FP)
+    recall = TP/(TP+FN)
+    f1 = 2*precision*recall/(precision+recall)
+    return precision, recall, f1
+            
     
 def main(): 
     X_train, X_test, y_train, y_test = load_tr_ts_data('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt',
