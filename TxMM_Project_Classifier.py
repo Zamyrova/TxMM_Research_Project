@@ -20,7 +20,7 @@ import pandas as pd
 import string
 from empath import Empath
 lexicon = Empath()
-from TxMM_Project_Load_Data import get_manual_labels 
+from TxMM_Project_Load_Data import get_manual_labels, get_gender_label 
 nltk.download('words')
 nltk.download('stopwords')
 nltk.download('punkt')
@@ -123,8 +123,18 @@ def validate(X, y):
         scores.append(list(skmr.precision_recall_fscore_support(y_val, y_pred)[:3]))
     return np.mean(np.array(scores), axis=0)
 
-def info_extractor_eval(info_pred, info_true):
-    TP, TN, FP, FN = 0
+def info_extractor_eval(file, df_path, df_with_dates):
+    label_set = get_manual_labels(file)
+    inds = [it[0] for it in label_set]
+    info_true = [it[1] for it in label_set]
+    
+    toy_df = pd.read_csv(df_path)
+    toy_df_dates = pd.read_csv(df_with_dates)
+    toy_df_filt = toy_df.loc[[it not in toy_df_dates['Unnamed: 0'].to_list() for it in toy_df['Unnamed: 0'].to_list()]]['description'].to_list()
+    toys_clean = [toy_df_filt[i] for i in inds]
+    info_pred = get_gender_label(toys_clean)
+    print(info_pred)
+    TP, TN, FP, FN = np.zeros((4, ))
     for pred, true in list(zip(info_pred, info_true)):
         if len(true)==0:
             if len(pred)==0: 
@@ -143,12 +153,17 @@ def info_extractor_eval(info_pred, info_true):
             
     
 def main(): 
-    X_train, X_test, y_train, y_test = load_tr_ts_data('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt',
+    #X_train, X_test, y_train, y_test = load_tr_ts_data('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt',
+    #                                                   '/Users/mariiazamyrova/Downloads/toys_for_class.csv',
+    #                                                   '/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
+    #validation = validate(X_train, y_train)
+    #print(validation)
+    
+    prec, rec, f1 = info_extractor_eval('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt',
                                                        '/Users/mariiazamyrova/Downloads/toys_for_class.csv',
                                                        '/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
-    validation = validate(X_train, y_train)
     
-    print(validation)
+    print(prec, rec, f1)
     
     
 if __name__ == '__main__':

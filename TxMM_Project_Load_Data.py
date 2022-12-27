@@ -165,10 +165,24 @@ def preprocess_data(df):
     
     return df_final, df_with_dates
 
-def get_gender_label(text):
+def get_gender_label(text_set):
     # 0 neutral
     # 1 female
     # -1 male
+    
+    f_pat = r'(?:\b'+'|'.join(female_nouns)+'\b)'
+    m_pat = r'(?:\b'+'|'.join(male_nouns)+'\b)'
+    n_pat = r'(?:\b'+'|'.join(neutral_nouns)+'\b)'
+    
+    f_and_m = r'(?:'+f_pat+r'\s*(?:(?:\band\s|or\s|\&\s\b)|\s*\W)\s*'+m_pat+r'[\W|\s])'
+    m_and_f = r'(?:'+m_pat+r'\s*(?:(?:\band\s|or\s|\&\s\b)|\s*\W)\s*'+f_pat+r'[\W|\s])'
+    
+    filter_pattern_f = r'(?:\s*(?:(?<!\b\snot\s\b)\bfor\b)\s(?:\w*\s)*(?:\s*'+f_pat+r's?\s?[\\|&]?[\W|\s])+)+'
+    filter_pattern_m = r'(?:\s*(?:(?<!\b\snot\s\b)\bfor\b)\s(?:\w*\s)*(?:\s*'+m_pat+r's?\s?[\\|&]?[\W|\s])+)+'
+    filter_pattern_n = r'\s*(?:\bfor\b)\s(?:\w*\s)*(?:(?:\s*'+n_pat+r's?\s?[\\|&]?[\W|\s])+|'+f_and_m+r'|'+m_and_f+r')' 
+    patterns = '|'.join([filter_pattern_m, filter_pattern_f, filter_pattern_n])
+    
+    return [re.findall(patterns, txt, flags=re.IGNORECASE, overlapped=True) for txt in text_set]
     
 
 def get_label_set(df, df_dates, size=50):
@@ -246,7 +260,7 @@ def get_manual_labels(file):
             regex_label, remainder = regex_label_and_remainder[1], regex_label_and_remainder[0]
             regex_label = re.split(r'\'\,\s\'', regex_label)
         else:
-            regex_label, remainder = None, regex_label_and_remainder[0]
+            regex_label, remainder = [], regex_label_and_remainder[0]
         
         return (ind, regex_label, class_label)
     
