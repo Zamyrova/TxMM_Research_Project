@@ -174,15 +174,34 @@ def get_gender_label(text_set):
     m_pat = r'(?:\b'+'|'.join(male_nouns)+'\b)'
     n_pat = r'(?:\b'+'|'.join(neutral_nouns)+'\b)'
     
-    f_and_m = r'(?:'+f_pat+r'\s*(?:(?:\band\s|or\s|\&\s\b)|\s*\W)\s*'+m_pat+r'[\W|\s])'
-    m_and_f = r'(?:'+m_pat+r'\s*(?:(?:\band\s|or\s|\&\s\b)|\s*\W)\s*'+f_pat+r'[\W|\s])'
+    f_and_m = r'(?:'+f_pat+r's?(?![^s])\s*(?:(?:\band\s|or\s|\&\s\b)|\s*\W)\s*'+m_pat+r's?(?![^s])\s?[\W|\s])'
+    m_and_f = r'(?:'+m_pat+r's?(?![^s])\s*(?:(?:\band\s|or\s|\&\s\b)|\s*\W)\s*'+f_pat+r's?(?![^s])\s?[\W|\s])'
     
-    filter_pattern_f = r'(?:\s*(?:(?<!\b\snot\s\b)\bfor\b)\s(?:\w*\s)*(?:\s*'+f_pat+r's?\s?[\\|&]?[\W|\s])+)+'
-    filter_pattern_m = r'(?:\s*(?:(?<!\b\snot\s\b)\bfor\b)\s(?:\w*\s)*(?:\s*'+m_pat+r's?\s?[\\|&]?[\W|\s])+)+'
-    filter_pattern_n = r'\s*(?:\bfor\b)\s(?:\w*\s)*(?:(?:\s*'+n_pat+r's?\s?[\\|&]?[\W|\s])+|'+f_and_m+r'|'+m_and_f+r')' 
+    filter_pattern_f = r'(?:\s*(?:(?<!\b\snot\s\b)\bfor\b)\s(?:\w*\s)*(?:\s*'+f_pat+r's?(?![^s])\s?[\\|&]?[\W|\s]*)+)+'
+    filter_pattern_m = r'(?:\s*(?:(?<!\b\snot\s\b)\bfor\b)\s(?:\w*\s)*(?:\s*'+m_pat+r's?(?![^s])\s?[\\|&]?[\W|\s]*)+)+'
+    filter_pattern_n = r'\s*(?:\bfor\b)\s(?:\w*\s)*(?:(?:\s*'+n_pat+r's?(?![^s])\s?[\\|&]?[\W|\s]*)+|'+f_and_m+r'|'+m_and_f+r')' 
     patterns = '|'.join([filter_pattern_m, filter_pattern_f, filter_pattern_n])
     
     return [re.findall(patterns, txt, flags=re.IGNORECASE, overlapped=True) for txt in text_set]
+
+def get_gender_labels(text):
+    # 0 neutral
+    # 1 female
+    # -1 male
+    
+    f_pat = r'(?:\b'+'|'.join(female_nouns)+'\b)'
+    m_pat = r'(?:\b'+'|'.join(male_nouns)+'\b)'
+    n_pat = r'(?:\b'+'|'.join(neutral_nouns)+'\b)'
+    
+    f_and_m = r'(?:'+f_pat+r's?(?![^s])\s*(?:(?:\band\s|or\s|\&\s\b)|\s*\W)\s*'+m_pat+r's?(?![^s])\s?[\W|\s])'
+    m_and_f = r'(?:'+m_pat+r's?(?![^s])\s*(?:(?:\band\s|or\s|\&\s\b)|\s*\W)\s*'+f_pat+r's?(?![^s])\s?[\W|\s])'
+    
+    filter_pattern_f = r'(?:\s*(?:(?<!\b\snot\s\b)\bfor\b)\s(?:\w*\s)*(?:\s*'+f_pat+r's?(?![^s])\s?[\\|&]?[\W|\s]*)+)+'
+    filter_pattern_m = r'(?:\s*(?:(?<!\b\snot\s\b)\bfor\b)\s(?:\w*\s)*(?:\s*'+m_pat+r's?(?![^s])\s?[\\|&]?[\W|\s]*)+)+'
+    filter_pattern_n = r'\s*(?:\bfor\b)\s(?:\w*\s)*(?:(?:\s*'+n_pat+r's?(?![^s])\s?[\\|&]?[\W|\s]*)+|'+f_and_m+r'|'+m_and_f+r')' 
+    patterns = [filter_pattern_m, filter_pattern_f, filter_pattern_n]
+    
+    return (re.findall(filter_pattern_f, text, flags=re.IGNORECASE, overlapped=True), re.findall(filter_pattern_m, text, flags=re.IGNORECASE, overlapped=True))
     
 
 def get_label_set(df, df_dates, size=50):
@@ -213,7 +232,7 @@ def get_label_set(df, df_dates, size=50):
     filter_pattern_n = r'\s*(?:\bfor\b)\s(?:\w*\s)*(?:(?:\s*'+n_pat+r's?\s?[\\|&]?[\W|\s])+|'+f_and_m+r'|'+m_and_f+r')' 
     #filter_pattern_m = r'(?:\bfor\b)\s(?:\w*\s)*(?:\b'+'|'.join(male_nouns)+'\b)[s|\W]'
     #filter_pattern_n = r'(?:\bfor\b)\s(?:\w*\s)*(?:\b'+'|'.join(neutral_nouns)+'\b)[s|\W]'
-    patterns = [filter_pattern_m, filter_pattern_f, filter_pattern_n]
+    patterns = [filter_pattern_m]#, filter_pattern_f, filter_pattern_n]
 
     df_descrs_shuffle = list(enumerate(df_filt['description'].to_list()))
     random.shuffle(df_descrs_shuffle)
@@ -288,11 +307,12 @@ def main():
     #get_manual_labels('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt')
     #print(get_manual_labels('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt')[-16])
     
+    
     toys_for_class = pd.read_csv('/Users/mariiazamyrova/Downloads/toys_for_class.csv')
     toys_with_dates = pd.read_csv('/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
     label_set = get_label_set(toys_for_class, toys_with_dates, size=100)
     
-    with open('Project_manual_labels4.txt', 'w') as f:
+    with open('Project_manual_labels5.txt', 'w') as f:
         for l in label_set:
             f.write(str(l)+'\n')
     
