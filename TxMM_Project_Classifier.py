@@ -8,6 +8,7 @@ Created on Sun Dec 25 11:12:37 2022
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.pipeline import Pipeline
+from sklearn.multiclass import OneVsRestClassifier
 from nltk.corpus import stopwords
 from nltk.tokenize import wordpunct_tokenize, sent_tokenize
 import nltk
@@ -36,7 +37,7 @@ POS_TAGS = ['CC', 'CD', 'DT', 'EX', 'FW', 'IN', 'JJ', 'JJR', 'JJS',
  'VBD', 'VBN', 'VBP', 'VBZ', 'WDT', 'WP', 'WRB']
 
 def txt_to_feature_vec(txt_raw):
-    txt_raw = re.sub(r'\s\n\s|(?<=[\w|\W])\n\s|\s\n(?=[\w|\W])', ' ', txt_raw)
+    txt_raw = re.sub(r'(?<=[\w|\W|\s])\\n(?=[\w|\W|\s])|\s\s+', ' ', txt_raw)
     txt_raw = re.sub(r'\\\'s', r'\'s', txt_raw)
     female_labels, male_labels, neutral_labels = get_gender_labels(txt_raw)
     female_labels = set([re.sub(r'\s', '', lab) for lab in female_labels])
@@ -53,7 +54,7 @@ def txt_to_feature_vec(txt_raw):
     for c in chars:
         if c.lower() in char_freqs.keys():
             char_freqs[c.lower()] += 1
-            
+          
     digit_freqs = dict.fromkeys(list('0123456789'), 0)
     for c in chars:
         if c.lower() in digit_freqs.keys():
@@ -77,16 +78,16 @@ def txt_to_feature_vec(txt_raw):
     feat_vec.append(len(words_no_stop))
     
     #ratio of stop words
-    feat_vec.append(len(words_stop)/len(bag_of_words))
+    #feat_vec.append(len(words_stop)/len(bag_of_words))
     
     #number of unique words/ vocab richness
     feat_vec.append(len(list(set(bag_of_words))))
     
     #number of unique words no stopwords 
-    feat_vec.append(len(list(set(words_no_stop))))
+    #feat_vec.append(len(list(set(words_no_stop))))
     
     #length of text in sentences
-    feat_vec.append(len(sentences))
+    #feat_vec.append(len(sentences))
     
     #average word length per whole text with no stop words 
     avg_word_len_no_stop = mean([len(w) for w in words_no_stop])
@@ -104,8 +105,10 @@ def txt_to_feature_vec(txt_raw):
         feat_vec.append(char_freqs[c]/len(chars))
         
     #digit frequencies (normalized)
+    
     for c in digit_freqs:
         feat_vec.append(digit_freqs[c]/len(chars))
+    
         
     #punctuation frequencies (normalized)
     for c in punct_freqs:
@@ -121,13 +124,13 @@ def txt_to_feature_vec(txt_raw):
         feat_vec.append(cats[cat])
         
     #number of female category indicators
-    feat_vec.append(len(female_labels))
+    #feat_vec.append(len(female_labels))
     
     #number of male category indicators
-    feat_vec.append(len(male_labels))
+    #feat_vec.append(len(male_labels))
     
     #number of neutral category indicators
-    feat_vec.append(len(neutral_labels))
+    #feat_vec.append(len(neutral_labels))
         
     return feat_vec
     #digit frequencies
@@ -145,6 +148,7 @@ def txt_to_feature_vec(txt_raw):
 
 def load_tr_ts_data(file, df_path, df_with_dates):
     label_set = get_manual_labels(file)
+    label_set = [it for it in label_set if it[2]!=2]
     inds = [it[0] for it in label_set]
     y = [it[2] for it in label_set]
     toy_df = pd.read_csv(df_path)
@@ -232,19 +236,19 @@ def main():
     X_train, X_test, y_train, y_test = load_tr_ts_data('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt',
                                                        '/Users/mariiazamyrova/Downloads/toys_for_class.csv',
                                                        '/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
-    validation = validate(X_train, y_train, clf = Pipeline([
-  ('feature_selection', SelectFromModel(LinearSVC())),
-  ('classification', SVC(kernel='linear'))
-]))
+    validation = validate(X_train, y_train, MLPClassifier())#, clf = Pipeline([
+  #('feature_selection', SelectFromModel(LinearSVC())),
+  #('classification', SVC(kernel='linear'))
+#]))
     print(validation)
     
     #compare_classifiers(X_train, y_train, [MLPClassifier(), KNeighborsClassifier(n_neighbors=3), SVC(kernel='linear')])
     
-    #pred_test = classify(X_train, y_train, X_test)
+    #pred_test = classify(X_train, y_train, X_test, MLPClassifier())
     
     #precision_test, recall_test, f1_test = np.array(list(skmr.precision_recall_fscore_support(y_test, pred_test)))[:3]
     
-    #print(list(zip(pred_test, y_test)))
+    #print(precision_test, recall_test, f1_test)
     
     #prec, rec, f1 = info_extractor_eval('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt',
     #                                                   '/Users/mariiazamyrova/Downloads/toys_for_class.csv',
