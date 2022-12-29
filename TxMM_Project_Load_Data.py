@@ -37,7 +37,7 @@ male_nouns = [w.replace('_', ' ') for w in male_nouns]
 male_nouns += [inflecter.plural(w) for w in male_nouns]
 neutral_nouns = kid_nouns+['person', 'adult', 'cousin', 'age', 'family',
                           'parent', 'grandparent', 'sibling',
-                          'spouse', 'friend', 'fan', 'fiance', 'enthusiast', 'everyone']
+                          'spouse', 'friend', 'fan', 'fiance', 'everyone']
 neutral_nouns = [w.replace('_', ' ') for w in neutral_nouns]
 neutral_nouns += [inflecter.plural(w) for w in neutral_nouns]
 
@@ -199,11 +199,11 @@ def get_gender_labels(text):
     filter_pattern_f = r'(?:\s*(?:(?<!\b\snot\s\b)\bfor\b)\s(?:\w*\s)*(?:\s*'+f_pat+r's?(?![^s])\s?[\\|&]?[\W|\s]*)+)+'
     filter_pattern_m = r'(?:\s*(?:(?<!\b\snot\s\b)\bfor\b)\s(?:\w*\s)*(?:\s*'+m_pat+r's?(?![^s])\s?[\\|&]?[\W|\s]*)+)+'
     filter_pattern_n = r'\s*(?:\bfor\b)\s(?:\w*\s)*(?:'+f_and_m+r'|'+m_and_f+r')' #(?:\s*'+n_pat+r's?(?![^s])\s?[\\|&]?[\W|\s]*)+|
-    patterns = [filter_pattern_m, filter_pattern_f, filter_pattern_n]
+    patterns = [f_pat, m_pat, n_pat]
     
-    return (re.findall(filter_pattern_f, text, flags=re.IGNORECASE, overlapped=True), 
-            re.findall(filter_pattern_m, text, flags=re.IGNORECASE, overlapped=True),
-            re.findall(filter_pattern_n, text, flags=re.IGNORECASE, overlapped=True))
+    return (re.findall(f_pat, text, flags=re.IGNORECASE, overlapped=True), 
+            re.findall(m_pat, text, flags=re.IGNORECASE, overlapped=True),
+            re.findall(n_pat, text, flags=re.IGNORECASE, overlapped=True))
     
 
 def get_label_set(df, df_dates, size=50):
@@ -234,7 +234,7 @@ def get_label_set(df, df_dates, size=50):
     filter_pattern_n = r'\s*(?:\bfor\b)\s(?:\w*\s)*(?:'+f_and_m+r'|'+m_and_f+r')' #(?:\s*'+n_pat+r's?\s?[\\|&]?[\W|\s])+|
     #filter_pattern_m = r'(?:\bfor\b)\s(?:\w*\s)*(?:\b'+'|'.join(male_nouns)+'\b)[s|\W]'
     #filter_pattern_n = r'(?:\bfor\b)\s(?:\w*\s)*(?:\b'+'|'.join(neutral_nouns)+'\b)[s|\W]'
-    patterns = [filter_pattern_n]#, filter_pattern_f, filter_pattern_n]
+    patterns = [filter_pattern_m]#, filter_pattern_f, filter_pattern_n]
 
     df_descrs_shuffle = list(enumerate([descr for descr in df_filt['description'].to_list() if type(descr)==str]))
     random.shuffle(df_descrs_shuffle)
@@ -310,10 +310,10 @@ def main():
     
     label_set = get_label_set(toys_for_class, toys_with_dates)
     '''
-    print(len([it for it in get_manual_labels('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt') if it[2]!=2]))
+    #print(len([it for it in get_manual_labels('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt') if it[2]==1]))
     #print(get_manual_labels('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt')[-16])
     
-    '''
+    
     toys_for_class = pd.read_csv('/Users/mariiazamyrova/Downloads/toys_for_class.csv')
     toys_with_dates = pd.read_csv('/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
     label_set = get_label_set(toys_for_class, toys_with_dates, size=100)
@@ -322,7 +322,7 @@ def main():
         for l in label_set:
             f.write(str(l)+'\n')
     
-    '''
+    
     
 if __name__ == '__main__':
     main()

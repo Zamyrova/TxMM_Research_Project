@@ -25,6 +25,7 @@ import pandas as pd
 import string
 from empath import Empath
 import re
+from sklearn import tree, ensemble
 lexicon = Empath()
 from TxMM_Project_Load_Data import get_manual_labels, get_gender_label, get_gender_labels
 nltk.download('words')
@@ -124,10 +125,10 @@ def txt_to_feature_vec(txt_raw):
         feat_vec.append(cats[cat])
         
     #number of female category indicators
-    #feat_vec.append(len(female_labels))
+    feat_vec.append(len(female_labels))
     
     #number of male category indicators
-    #feat_vec.append(len(male_labels))
+    feat_vec.append(len(male_labels))
     
     #number of neutral category indicators
     #feat_vec.append(len(neutral_labels))
@@ -148,7 +149,10 @@ def txt_to_feature_vec(txt_raw):
 
 def load_tr_ts_data(file, df_path, df_with_dates):
     label_set = get_manual_labels(file)
-    label_set = [it for it in label_set if it[2]!=2]
+    #label_set = [it for it in label_set if it[2]!=2]
+    for it in range(len(label_set)):
+        if label_set[it][2] == 2:
+            label_set[it] = (label_set[it][0], label_set[it][1], 0)
     inds = [it[0] for it in label_set]
     y = [it[2] for it in label_set]
     toy_df = pd.read_csv(df_path)
@@ -236,7 +240,7 @@ def main():
     X_train, X_test, y_train, y_test = load_tr_ts_data('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt',
                                                        '/Users/mariiazamyrova/Downloads/toys_for_class.csv',
                                                        '/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
-    validation = validate(X_train, y_train, MLPClassifier())#, clf = Pipeline([
+    validation = validate(X_train, y_train, tree.DecisionTreeClassifier())#, clf = Pipeline([
   #('feature_selection', SelectFromModel(LinearSVC())),
   #('classification', SVC(kernel='linear'))
 #]))
