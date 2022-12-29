@@ -201,7 +201,9 @@ def get_gender_labels(text):
     filter_pattern_n = r'\s*(?:\bfor\b)\s(?:\w*\s)*(?:(?:\s*'+n_pat+r's?(?![^s])\s?[\\|&]?[\W|\s]*)+|'+f_and_m+r'|'+m_and_f+r')' 
     patterns = [filter_pattern_m, filter_pattern_f, filter_pattern_n]
     
-    return (re.findall(filter_pattern_f, text, flags=re.IGNORECASE, overlapped=True), re.findall(filter_pattern_m, text, flags=re.IGNORECASE, overlapped=True))
+    return (re.findall(filter_pattern_f, text, flags=re.IGNORECASE, overlapped=True), 
+            re.findall(filter_pattern_m, text, flags=re.IGNORECASE, overlapped=True),
+            re.findall(filter_pattern_n, text, flags=re.IGNORECASE, overlapped=True))
     
 
 def get_label_set(df, df_dates, size=50):

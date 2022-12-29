@@ -7,13 +7,15 @@ Created on Sun Dec 25 11:12:37 2022
 """
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
+from sklearn.pipeline import Pipeline
 from nltk.corpus import stopwords
 from nltk.tokenize import wordpunct_tokenize, sent_tokenize
 import nltk
 import sklearn.datasets
 import sklearn.metrics as skmr
 import sklearn.model_selection as skm
-from sklearn.svm import SVC
+from sklearn.svm import SVC, LinearSVC
+from sklearn.feature_selection import SelectFromModel
 from nltk import pos_tag, ngrams, FreqDist
 from statistics import mean
 import matplotlib.pyplot as plt
@@ -36,11 +38,13 @@ POS_TAGS = ['CC', 'CD', 'DT', 'EX', 'FW', 'IN', 'JJ', 'JJR', 'JJS',
 def txt_to_feature_vec(txt_raw):
     txt_raw = re.sub(r'\s\n\s|(?<=[\w|\W])\n\s|\s\n(?=[\w|\W])', ' ', txt_raw)
     txt_raw = re.sub(r'\\\'s', r'\'s', txt_raw)
-    female_labels, male_labels = get_gender_labels(txt_raw)
+    female_labels, male_labels, neutral_labels = get_gender_labels(txt_raw)
     female_labels = set([re.sub(r'\s', '', lab) for lab in female_labels])
     male_labels = set([re.sub(r'\s', '', lab) for lab in male_labels])
+    neutral_labels = set([re.sub(r'\s', '', lab) for lab in neutral_labels])
     feat_vec = []
     bag_of_words = [x for x in wordpunct_tokenize(txt_raw)]
+    words_no_stop = [x for x in bag_of_words if x.lower() not in stop_words]
     words_stop = [x for x in bag_of_words if x.lower() in stop_words]
     sentences = sent_tokenize(txt_raw)
     
@@ -69,11 +73,31 @@ def txt_to_feature_vec(txt_raw):
     #length of text in words
     feat_vec.append(len(bag_of_words))
     
+    #length of text in words without stopwords
+    feat_vec.append(len(words_no_stop))
+    
     #ratio of stop words
     feat_vec.append(len(words_stop)/len(bag_of_words))
     
+    #number of unique words/ vocab richness
+    feat_vec.append(len(list(set(bag_of_words))))
+    
+    #number of unique words no stopwords 
+    feat_vec.append(len(list(set(words_no_stop))))
+    
     #length of text in sentences
     feat_vec.append(len(sentences))
+    
+    #average word length per whole text with no stop words 
+    avg_word_len_no_stop = mean([len(w) for w in words_no_stop])
+    feat_vec.append(avg_word_len_no_stop)
+    
+    #average word length per whole text with stop words 
+    avg_word_len = mean([len(w) for w in bag_of_words])
+    feat_vec.append(avg_word_len)
+    
+    #number of upper characters
+    feat_vec.append(len([c for c in chars if c.isupper()]))
     
     #character frequencies (normalized)
     for c in char_freqs:
@@ -101,6 +125,9 @@ def txt_to_feature_vec(txt_raw):
     
     #number of male category indicators
     feat_vec.append(len(male_labels))
+    
+    #number of neutral category indicators
+    feat_vec.append(len(neutral_labels))
         
     return feat_vec
     #digit frequencies
@@ -129,14 +156,34 @@ def load_tr_ts_data(file, df_path, df_with_dates):
     X_train, X_test, y_train, y_test = skm.train_test_split(X, y, test_size=0.2, random_state=42)
     return X_train, X_test, y_train, y_test
 
-def classify(X_train, y_train, X_test):
-    clf = MLPClassifier()
+def classify(X_train, y_train, X_test, clf):
+    #clf = MLPClassifier()
     #clf = KNeighborsClassifier(n_neighbors=3)
     #clf = SVC(kernel='linear')
     clf.fit(X_train, y_train)
     return clf.predict(X_test)
 
-def validate(X, y):
+def compare_classifiers(X, y, clfs):
+    skf = skm.StratifiedKFold(n_splits=10)
+    data_split = list(enumerate(skf.split(X, y)))
+    for clf in clfs:
+        scores = []
+        for fold_id, (train_inds, val_inds) in data_split.copy():
+    
+            # Collect the data for this train/validation split
+            X_train = [X[tr_ind] for tr_ind in train_inds]
+            y_train = [y[tr_ind] for tr_ind in train_inds]
+            X_val = [X[val_ind] for val_ind in val_inds]
+            y_val = [y[val_ind] for val_ind in val_inds]
+    
+            # Classify and add the scores to be able to average later
+            y_pred = classify(X_train, y_train, X_val, clf)
+            scores.append(np.array(list(skmr.precision_recall_fscore_support(y_val, y_pred)))[:3]) 
+        print(np.mean(np.array(scores), axis=0))
+    
+    
+
+def validate(X, y, clf = SVC(kernel='linear')):
     skf = skm.StratifiedKFold(n_splits=10)
     scores = []
     for fold_id, (train_inds, val_inds) in enumerate(skf.split(X, y)):
@@ -148,7 +195,7 @@ def validate(X, y):
         y_val = [y[val_ind] for val_ind in val_inds]
 
         # Classify and add the scores to be able to average later
-        y_pred = classify(X_train, y_train, X_val)
+        y_pred = classify(X_train, y_train, X_val, clf)
         scores.append(np.array(list(skmr.precision_recall_fscore_support(y_val, y_pred)))[:3])
     return np.mean(np.array(scores), axis=0)
 
@@ -185,8 +232,13 @@ def main():
     X_train, X_test, y_train, y_test = load_tr_ts_data('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt',
                                                        '/Users/mariiazamyrova/Downloads/toys_for_class.csv',
                                                        '/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
-    validation = validate(X_train, y_train)
+    validation = validate(X_train, y_train, clf = Pipeline([
+  ('feature_selection', SelectFromModel(LinearSVC())),
+  ('classification', SVC(kernel='linear'))
+]))
     print(validation)
+    
+    #compare_classifiers(X_train, y_train, [MLPClassifier(), KNeighborsClassifier(n_neighbors=3), SVC(kernel='linear')])
     
     #pred_test = classify(X_train, y_train, X_test)
     
