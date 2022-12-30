@@ -99,7 +99,7 @@ def txt_to_feature_vec(txt_raw):
     feat_vec.append(avg_word_len)
     
     #number of upper characters
-    feat_vec.append(len([c for c in chars if c.isupper()]))
+    feat_vec.append(len([c for c in chars if c.isupper()])/len(chars))
     
     #character frequencies (normalized)
     for c in char_freqs:
@@ -207,6 +207,59 @@ def validate(X, y, clf = SVC(kernel='linear')):
         scores.append(np.array(list(skmr.precision_recall_fscore_support(y_val, y_pred)))[:3])
     return np.mean(np.array(scores), axis=0)
 
+def ablation_analysis(X, y, clf):
+    groups = [[], # all features
+              list(range(5)), # word features
+              list(range(5, 32)),# char features
+              list(range(32, 42)), # digit features
+              list(range(42, 74)), # punct features
+              list(range(74, 108)), # POS frequencies
+              list(range(108, 302)), # emotional category frequencies
+              list(range(-2, 0)) # gender ngrams
+              ]
+    skf = skm.StratifiedKFold(n_splits=10)
+    data_split = list(enumerate(skf.split(X, y)))
+    data_split = list(enumerate(skf.split(X, y)))
+    overall_scores = []
+    for group in groups:
+        scores = []
+        feature_subset = []
+        for item in range(len(X)):
+            feats = [X[item][i] for i in range(len(X[0])) if i not in group]
+            feature_subset.append(feats)
+            
+        for fold_id, (train_inds, val_inds) in data_split.copy():
+    
+            X_train = [X[tr_ind] for tr_ind in train_inds]
+            y_train = [y[tr_ind] for tr_ind in train_inds]
+            X_val = [X[val_ind] for val_ind in val_inds]
+            y_val = [y[val_ind] for val_ind in val_inds]
+    
+            # Classify and add the scores to be able to average later
+            y_pred = classify(X_train, y_train, X_val, clf)
+            scores.append(np.array(list(skmr.precision_recall_fscore_support(y_val, y_pred, average='micro')))[2])
+    
+        # Compute the averaged score
+        f_score = sum([x for x in scores]) / len(scores)
+        overall_scores.append(f_score)
+    
+    figure = plt.figure(figsize=(10,5), dpi=200)
+    fig = plt.subplot()
+    plt.bar(np.arange(len(overall_scores)), overall_scores, width=.5, color='blue')
+    labels = ["A: None", "B: Words", "C: Characters", "D: Digits", "E: Puncuation", 
+                "F: POS frequencies", "G: Emotional category frequencies", "H: Gender labels"]
+    for lab in labels:
+        plt.bar([0], [0], width=0, label=lab, color='blue')
+    fig.set_xticks(np.arange(len(overall_scores)))
+    fig.set_xticklabels(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'])
+    box = fig.get_position()
+    fig.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    fig.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    fig.set_title("Ablation analysis")
+    fig.set_ylabel("F-scores")
+    fig.set_xlabel("Features")
+    plt.savefig('Project_ablation2.png')
+
 def info_extractor_eval(file, df_path, df_with_dates):
     label_set = get_manual_labels(file)
     inds = [it[0] for it in label_set]
@@ -240,13 +293,13 @@ def main():
     X_train, X_test, y_train, y_test = load_tr_ts_data('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt',
                                                        '/Users/mariiazamyrova/Downloads/toys_for_class.csv',
                                                        '/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
-    validation = validate(X_train, y_train, tree.DecisionTreeClassifier())#, clf = Pipeline([
-  #('feature_selection', SelectFromModel(LinearSVC())),
-  #('classification', SVC(kernel='linear'))
-#]))
-    print(validation)
     
-    #compare_classifiers(X_train, y_train, [MLPClassifier(), KNeighborsClassifier(n_neighbors=3), SVC(kernel='linear')])
+    ablation_analysis(X_train, y_train, MLPClassifier())
+    
+    #validation = validate(X_train, y_train, MLPClassifier())
+    #print(validation)
+    
+    #compare_classifiers(X_train, y_train, [MLPClassifier(), KNeighborsClassifier(), SVC(), tree.DecisionTreeClassifier(), ensemble.RandomForestClassifier()])
     
     #pred_test = classify(X_train, y_train, X_test, MLPClassifier())
     
