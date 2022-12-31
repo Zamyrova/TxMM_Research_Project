@@ -274,17 +274,17 @@ def classify_dates(X_train, y_train, X_test_file, clf):
     feature_analysis_dict['Avg word length'] = [item[4] for item in features]
     feature_analysis_dict['Avg word length (no stopwords)'] = [item[3] for item in features]
     feature_analysis_dict['Upper case characters'] = [item[5] for item in features]
-    feature_analysis_dict['Digit number'] = sum([feat for item in features for i, feat in enumerate(item) if i in list(range(32, 42))])
-    feature_analysis_dict['Vowels'] = sum([feat for item in features for i, feat in enumerate(item) if i in [6, 10, 14, 20, 26, 30]])
-    feature_analysis_dict['Consonants'] = sum([feat for item in features for i, feat in enumerate(item) if i in [7, 8, 9, 11, 12, 13, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 27, 28, 29, 31]])
+    feature_analysis_dict['Digit number'] = [sum([feat for i, feat in enumerate(item) if i in list(range(32, 42))]) for item in features]
+    feature_analysis_dict['Vowels'] = [sum([feat for i, feat in enumerate(item) if i in [6, 10, 14, 20, 26, 30]]) for item in features]  
+    feature_analysis_dict['Consonants'] = [sum([feat for i, feat in enumerate(item) if i in [7, 8, 9, 11, 12, 13, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 27, 28, 29, 31]]) for item in features] 
     feature_analysis_dict['Exclamation marks'] = [item[42] for item in features]
     feature_analysis_dict['Question marks'] = [item[63] for item in features]
-    feature_analysis_dict['Other punctuation'] = sum([feat for item in features for i, feat in enumerate(item) if (i in list(range(42, 74)) and i!=42 and i!=63)])
+    feature_analysis_dict['Other punctuation'] = [sum([feat for i, feat in enumerate(item) if (i in list(range(42, 74)) and i!=42 and i!=63)]) for item in features] 
     feature_analysis_dict['Adjectives'] = [item[80] for item in features]
     feature_analysis_dict['Adjectives (comparative)'] = [item[81] for item in features]
     feature_analysis_dict['Adjectives (superlative)'] = [item[82] for item in features]
-    feature_analysis_dict['Nouns'] = sum([feat for item in features for i, feat in enumerate(item) if i in [85, 86]])
-    feature_analysis_dict['Proper nouns'] = sum([feat for item in features for i, feat in enumerate(item) if i in [87, 88]])
+    feature_analysis_dict['Nouns'] = [sum([feat for i, feat in enumerate(item) if i in [85, 86]]) for item in features] 
+    feature_analysis_dict['Proper nouns'] = [sum([feat for i, feat in enumerate(item) if i in [87, 88]]) for item in features] 
     feature_analysis_dict['Posessive ending'] = [item[90] for item in features]
     feature_analysis_dict['Personal pronouns'] = [item[91] for item in features]
     feature_analysis_dict['Posessive pronouns'] = [item[92] for item in features]
@@ -298,10 +298,10 @@ def classify_dates(X_train, y_train, X_test_file, clf):
     
     feature_df = pd.DataFrame(feature_analysis_dict)
     feature_df = feature_df.sort_values(by=['Release Date'])
-    feature_df.to_csv('toys_with_dates_features.csv')
+    feature_df.to_csv('toys_with_dates_features2.csv')
     
     average_date_feature_df = feature_df.groupby(['Release Date','Gender label']).mean()
-    average_date_feature_df.to_csv('toys_with_dates_avg_features.csv')
+    average_date_feature_df.to_csv('toys_with_dates_avg_features2.csv')
     
     
 def info_extractor_eval(file, df_path, df_with_dates):
@@ -331,7 +331,12 @@ def info_extractor_eval(file, df_path, df_with_dates):
     recall = TP/(TP+FN)
     f1 = 2*precision*recall/(precision+recall)
     return precision, recall, f1
-            
+'''
+def plot_feature_evolution(feature_name):    
+    average_date_feature_df = pd.read_csv('toys_with_dates_avg_features.csv')
+    figure = plt.figure(dpi=200)
+    plt.plot()
+'''    
     
 def main(): 
     X_train, X_test, y_train, y_test = load_tr_ts_data('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt',
