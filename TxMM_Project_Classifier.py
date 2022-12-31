@@ -260,6 +260,7 @@ def ablation_analysis(X, y, clf):
     plt.savefig('Project_ablation2.png')
     
 def classify_dates(X_train, y_train, X_test_file, clf):
+    
     toy_df_dates = pd.read_csv(X_test_file)
     toy_df_descrs = toy_df_dates['description'].to_list()
     features = [txt_to_feature_vec(descr) for descr in toy_df_descrs]
@@ -299,7 +300,7 @@ def classify_dates(X_train, y_train, X_test_file, clf):
     feature_df = feature_df.sort_values(by=['Release Date'])
     feature_df.to_csv('toys_with_dates_features.csv')
     
-    average_date_feature_df = feature_df.group_by(['Release Date','Gender label']).mean()
+    average_date_feature_df = feature_df.groupby(['Release Date','Gender label']).mean()
     average_date_feature_df.to_csv('toys_with_dates_avg_features.csv')
     
     
