@@ -49,7 +49,6 @@ def txt_to_feature_vec(txt_raw):
     words_no_stop = [x for x in bag_of_words if x.lower() not in stop_words]
     words_stop = [x for x in bag_of_words if x.lower() in stop_words]
     sentences = sent_tokenize(txt_raw)
-    
     chars = [c for w in bag_of_words for c in list(w)]
     char_freqs = dict.fromkeys(list('abcdefghijklmnopqrstuvwxyz'), 0)
     for c in chars:
@@ -204,7 +203,7 @@ def validate(X, y, clf = SVC(kernel='linear')):
 
         # Classify and add the scores to be able to average later
         y_pred = classify(X_train, y_train, X_val, clf)
-        scores.append(np.array(list(skmr.precision_recall_fscore_support(y_val, y_pred)))[:3])
+        scores.append(list(skmr.precision_recall_fscore_support(y_val, y_pred))[:3])
     return np.mean(np.array(scores), axis=0)
 
 def ablation_analysis(X, y, clf):
@@ -259,7 +258,51 @@ def ablation_analysis(X, y, clf):
     fig.set_ylabel("F-scores")
     fig.set_xlabel("Features")
     plt.savefig('Project_ablation2.png')
-
+    
+def classify_dates(X_train, y_train, X_test_file, clf):
+    toy_df_dates = pd.read_csv(X_test_file)
+    toy_df_descrs = toy_df_dates['description'].to_list()
+    features = [txt_to_feature_vec(descr) for descr in toy_df_descrs]
+    feature_analysis_dict = {}
+    feature_analysis_dict['ID'] = toy_df_dates['Unnamed: 0'].to_list()
+    feature_analysis_dict['Release Date'] = toy_df_dates['release_date'].to_list()
+    feature_analysis_dict['Gender label'] = classify(X_train, y_train, features, clf)
+    feature_analysis_dict['Text length'] = [item[0] for item in features]
+    feature_analysis_dict['Text length (no stopwords)'] = [item[1] for item in features]
+    feature_analysis_dict['Number of unique words'] = [item[2] for item in features]
+    feature_analysis_dict['Avg word length'] = [item[4] for item in features]
+    feature_analysis_dict['Avg word length (no stopwords)'] = [item[3] for item in features]
+    feature_analysis_dict['Upper case characters'] = [item[5] for item in features]
+    feature_analysis_dict['Digit number'] = sum([feat for item in features for i, feat in enumerate(item) if i in list(range(32, 42))])
+    feature_analysis_dict['Vowels'] = sum([feat for item in features for i, feat in enumerate(item) if i in [6, 10, 14, 20, 26, 30]])
+    feature_analysis_dict['Consonants'] = sum([feat for item in features for i, feat in enumerate(item) if i in [7, 8, 9, 11, 12, 13, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 27, 28, 29, 31]])
+    feature_analysis_dict['Exclamation marks'] = [feat[42] for item in features]
+    feature_analysis_dict['Question marks'] = [feat[63] for item in features]
+    feature_analysis_dict['Other punctuation'] = sum([feat for item in features for i, feat in enumerate(item) if (i in list(range(42, 74)) and i!=42 and i!=63)])
+    feature_analysis_dict['Adjectives'] = [feat[80] for item in features]
+    feature_analysis_dict['Adjectives (comparative)'] = [feat[81] for item in features]
+    feature_analysis_dict['Adjectives (superlative)'] = [feat[82] for item in features]
+    feature_analysis_dict['Nouns'] = sum([feat for item in features for i, feat in enumerate(item) if i in [85, 86]])
+    feature_analysis_dict['Proper nouns'] = sum([feat for item in features for i, feat in enumerate(item) if i in [87, 88]])
+    feature_analysis_dict['Posessive ending'] = [feat[90] for item in features]
+    feature_analysis_dict['Personal pronouns'] = [feat[91] for item in features]
+    feature_analysis_dict['Posessive pronouns'] = [feat[92] for item in features]
+    feature_analysis_dict['Verbs'] = [feat[99] for item in features]
+    
+    for i, cat in enumerate(lexicon.analyze(toy_df_descrs[0], normalize=True).keys()):
+        feature_analysis_dict[cat] = [feat[108+i] for item in features]
+        
+    feature_analysis_dict['Female regex label'] = [feat[-2] for item in features]
+    feature_analysis_dict['Male regex label'] = [feat[-1] for item in features]
+    
+    feature_df = pd.DataFrame(feature_analysis_dict)
+    feature_df = feature_df.sort_values(by=['Release Date'])
+    feature_df.to_csv('toys_with_dates_features.csv')
+    
+    average_date_feature_df = feature_df.group_by(['Release Date','Gender label']).mean()
+    feature_avg_df.to_csv('toys_with_dates_avg_features.csv')
+    
+    
 def info_extractor_eval(file, df_path, df_with_dates):
     label_set = get_manual_labels(file)
     inds = [it[0] for it in label_set]
@@ -294,18 +337,20 @@ def main():
                                                        '/Users/mariiazamyrova/Downloads/toys_for_class.csv',
                                                        '/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
     
-    ablation_analysis(X_train, y_train, MLPClassifier())
+    classify_dates(X_train, y_train, '/Users/mariiazamyrova/Downloads/toys_with_dates.csv', MLPClassifier())
+    #ablation_analysis(X_train, y_train, MLPClassifier())
     
     #validation = validate(X_train, y_train, MLPClassifier())
     #print(validation)
+    
+    #compare_classifiers(X_train, y_train, [MLPClassifier(), MLPClassifier(activation='logistic', solver='lbfgs')])
     
     #compare_classifiers(X_train, y_train, [MLPClassifier(), KNeighborsClassifier(), SVC(), tree.DecisionTreeClassifier(), ensemble.RandomForestClassifier()])
     
     #pred_test = classify(X_train, y_train, X_test, MLPClassifier())
     
-    #precision_test, recall_test, f1_test = np.array(list(skmr.precision_recall_fscore_support(y_test, pred_test)))[:3]
-    
-    #print(precision_test, recall_test, f1_test)
+    #precision_recall_f1_test = list(skmr.precision_recall_fscore_support(y_test, pred_test))[:3]
+    #print(precision_recall_f1_test)
     
     #prec, rec, f1 = info_extractor_eval('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt',
     #                                                   '/Users/mariiazamyrova/Downloads/toys_for_class.csv',
