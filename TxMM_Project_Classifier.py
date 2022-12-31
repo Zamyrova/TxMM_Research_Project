@@ -276,31 +276,31 @@ def classify_dates(X_train, y_train, X_test_file, clf):
     feature_analysis_dict['Digit number'] = sum([feat for item in features for i, feat in enumerate(item) if i in list(range(32, 42))])
     feature_analysis_dict['Vowels'] = sum([feat for item in features for i, feat in enumerate(item) if i in [6, 10, 14, 20, 26, 30]])
     feature_analysis_dict['Consonants'] = sum([feat for item in features for i, feat in enumerate(item) if i in [7, 8, 9, 11, 12, 13, 15, 16, 17, 18, 19, 21, 22, 23, 24, 25, 27, 28, 29, 31]])
-    feature_analysis_dict['Exclamation marks'] = [feat[42] for item in features]
-    feature_analysis_dict['Question marks'] = [feat[63] for item in features]
+    feature_analysis_dict['Exclamation marks'] = [item[42] for item in features]
+    feature_analysis_dict['Question marks'] = [item[63] for item in features]
     feature_analysis_dict['Other punctuation'] = sum([feat for item in features for i, feat in enumerate(item) if (i in list(range(42, 74)) and i!=42 and i!=63)])
-    feature_analysis_dict['Adjectives'] = [feat[80] for item in features]
-    feature_analysis_dict['Adjectives (comparative)'] = [feat[81] for item in features]
-    feature_analysis_dict['Adjectives (superlative)'] = [feat[82] for item in features]
+    feature_analysis_dict['Adjectives'] = [item[80] for item in features]
+    feature_analysis_dict['Adjectives (comparative)'] = [item[81] for item in features]
+    feature_analysis_dict['Adjectives (superlative)'] = [item[82] for item in features]
     feature_analysis_dict['Nouns'] = sum([feat for item in features for i, feat in enumerate(item) if i in [85, 86]])
     feature_analysis_dict['Proper nouns'] = sum([feat for item in features for i, feat in enumerate(item) if i in [87, 88]])
-    feature_analysis_dict['Posessive ending'] = [feat[90] for item in features]
-    feature_analysis_dict['Personal pronouns'] = [feat[91] for item in features]
-    feature_analysis_dict['Posessive pronouns'] = [feat[92] for item in features]
-    feature_analysis_dict['Verbs'] = [feat[99] for item in features]
+    feature_analysis_dict['Posessive ending'] = [item[90] for item in features]
+    feature_analysis_dict['Personal pronouns'] = [item[91] for item in features]
+    feature_analysis_dict['Posessive pronouns'] = [item[92] for item in features]
+    feature_analysis_dict['Verbs'] = [item[99] for item in features]
     
     for i, cat in enumerate(lexicon.analyze(toy_df_descrs[0], normalize=True).keys()):
-        feature_analysis_dict[cat] = [feat[108+i] for item in features]
+        feature_analysis_dict[cat] = [item[108+i] for item in features]
         
-    feature_analysis_dict['Female regex label'] = [feat[-2] for item in features]
-    feature_analysis_dict['Male regex label'] = [feat[-1] for item in features]
+    feature_analysis_dict['Female regex label'] = [item[-2] for item in features]
+    feature_analysis_dict['Male regex label'] = [item[-1] for item in features]
     
     feature_df = pd.DataFrame(feature_analysis_dict)
     feature_df = feature_df.sort_values(by=['Release Date'])
     feature_df.to_csv('toys_with_dates_features.csv')
     
     average_date_feature_df = feature_df.group_by(['Release Date','Gender label']).mean()
-    feature_avg_df.to_csv('toys_with_dates_avg_features.csv')
+    average_date_feature_df.to_csv('toys_with_dates_avg_features.csv')
     
     
 def info_extractor_eval(file, df_path, df_with_dates):
