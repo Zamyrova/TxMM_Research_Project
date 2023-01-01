@@ -7,17 +7,12 @@ Created on Sun Dec 25 11:12:37 2022
 """
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.neural_network import MLPClassifier
-from sklearn.pipeline import Pipeline
-from sklearn.multiclass import OneVsRestClassifier
 from nltk.corpus import stopwords
-from nltk.tokenize import wordpunct_tokenize, sent_tokenize
+from nltk.tokenize import wordpunct_tokenize
 import nltk
-import sklearn.datasets
 import sklearn.metrics as skmr
 import sklearn.model_selection as skm
-from sklearn.svm import SVC, LinearSVC
-from sklearn.feature_selection import SelectFromModel
-from nltk import pos_tag, ngrams, FreqDist
+from nltk import pos_tag
 from statistics import mean
 import matplotlib.pyplot as plt
 import numpy as np
@@ -37,6 +32,7 @@ POS_TAGS = ['CC', 'CD', 'DT', 'EX', 'FW', 'IN', 'JJ', 'JJR', 'JJS',
  'PRP$', 'RB', 'RBR', 'RBS', 'RP', 'TO', 'UH', 'VB', 'VBG', 
  'VBD', 'VBN', 'VBP', 'VBZ', 'WDT', 'WP', 'WRB']
 
+# Extract features from toy description text
 def txt_to_feature_vec(txt_raw):
     txt_raw = re.sub(r'(?<=[\w|\W|\s])\\n(?=[\w|\W|\s])|\s\s+', ' ', txt_raw)
     txt_raw = re.sub(r'\\\'s', r'\'s', txt_raw)
@@ -47,8 +43,6 @@ def txt_to_feature_vec(txt_raw):
     feat_vec = []
     bag_of_words = [x for x in wordpunct_tokenize(txt_raw)]
     words_no_stop = [x for x in bag_of_words if x.lower() not in stop_words]
-    words_stop = [x for x in bag_of_words if x.lower() in stop_words]
-    sentences = sent_tokenize(txt_raw)
     chars = [c for w in bag_of_words for c in list(w)]
     char_freqs = dict.fromkeys(list('abcdefghijklmnopqrstuvwxyz'), 0)
     for c in chars:
@@ -77,17 +71,8 @@ def txt_to_feature_vec(txt_raw):
     #length of text in words without stopwords
     feat_vec.append(len(words_no_stop))
     
-    #ratio of stop words
-    #feat_vec.append(len(words_stop)/len(bag_of_words))
-    
     #number of unique words/ vocab richness
     feat_vec.append(len(list(set(bag_of_words))))
-    
-    #number of unique words no stopwords 
-    #feat_vec.append(len(list(set(words_no_stop))))
-    
-    #length of text in sentences
-    #feat_vec.append(len(sentences))
     
     #average word length per whole text with no stop words 
     avg_word_len_no_stop = mean([len(w) for w in words_no_stop])
@@ -105,7 +90,6 @@ def txt_to_feature_vec(txt_raw):
         feat_vec.append(char_freqs[c]/len(chars))
         
     #digit frequencies (normalized)
-    
     for c in digit_freqs:
         feat_vec.append(digit_freqs[c]/len(chars))
     
@@ -129,26 +113,11 @@ def txt_to_feature_vec(txt_raw):
     #number of male category indicators
     feat_vec.append(len(male_labels))
     
-    #number of neutral category indicators
-    #feat_vec.append(len(neutral_labels))
-        
     return feat_vec
-    #digit frequencies
-    #character frequancies
-    #punctuation frequency 
-    #POS frequency
-    #female noun frequency
-    #female adjs frequency (LIWC)
-    #female verb frequency
-    #male noun frequency
-    #male adjs frequency (LIWC)
-    #male verb frequency
-    
-    
 
+# Split data into test and train sets
 def load_tr_ts_data(file, df_path, df_with_dates):
     label_set = get_manual_labels(file)
-    #label_set = [it for it in label_set if it[2]!=2]
     for it in range(len(label_set)):
         if label_set[it][2] == 2:
             label_set[it] = (label_set[it][0], label_set[it][1], 0)
@@ -158,18 +127,16 @@ def load_tr_ts_data(file, df_path, df_with_dates):
     toy_df_dates = pd.read_csv(df_with_dates)
     toy_df_filt = toy_df.loc[[it not in toy_df_dates['Unnamed: 0'].to_list() for it in toy_df['Unnamed: 0'].to_list()]]['description'].to_list()
     toys_clean = [toy_df_filt[i] for i in inds]
-    #toy_df_filt.loc[[it in inds for it in toy_df_filt['Unnamed: 0'].to_list()]]['description'].to_list()
     X = list(map(txt_to_feature_vec, toys_clean))
     X_train, X_test, y_train, y_test = skm.train_test_split(X, y, test_size=0.2, random_state=42)
     return X_train, X_test, y_train, y_test
 
+# Classify data
 def classify(X_train, y_train, X_test, clf):
-    #clf = MLPClassifier()
-    #clf = KNeighborsClassifier(n_neighbors=3)
-    #clf = SVC(kernel='linear')
     clf.fit(X_train, y_train)
     return clf.predict(X_test)
 
+# Compare performance of different classifiers
 def compare_classifiers(X, y, clfs):
     skf = skm.StratifiedKFold(n_splits=10)
     data_split = list(enumerate(skf.split(X, y)))
@@ -177,35 +144,31 @@ def compare_classifiers(X, y, clfs):
         scores = []
         for fold_id, (train_inds, val_inds) in data_split.copy():
     
-            # Collect the data for this train/validation split
             X_train = [X[tr_ind] for tr_ind in train_inds]
             y_train = [y[tr_ind] for tr_ind in train_inds]
             X_val = [X[val_ind] for val_ind in val_inds]
             y_val = [y[val_ind] for val_ind in val_inds]
     
-            # Classify and add the scores to be able to average later
             y_pred = classify(X_train, y_train, X_val, clf)
             scores.append(np.array(list(skmr.precision_recall_fscore_support(y_val, y_pred)))[:3]) 
         print(np.mean(np.array(scores), axis=0))
-    
-    
 
-def validate(X, y, clf = SVC(kernel='linear')):
+# Perform cross-validation
+def validate(X, y, clf):
     skf = skm.StratifiedKFold(n_splits=10)
     scores = []
     for fold_id, (train_inds, val_inds) in enumerate(skf.split(X, y)):
 
-        # Collect the data for this train/validation split
         X_train = [X[tr_ind] for tr_ind in train_inds]
         y_train = [y[tr_ind] for tr_ind in train_inds]
         X_val = [X[val_ind] for val_ind in val_inds]
         y_val = [y[val_ind] for val_ind in val_inds]
 
-        # Classify and add the scores to be able to average later
         y_pred = classify(X_train, y_train, X_val, clf)
         scores.append(list(skmr.precision_recall_fscore_support(y_val, y_pred))[:3])
     return np.mean(np.array(scores), axis=0)
 
+# Perform ablation analysis
 def ablation_analysis(X, y, clf):
     groups = [[], # all features
               list(range(5)), # word features
@@ -214,7 +177,7 @@ def ablation_analysis(X, y, clf):
               list(range(42, 74)), # punct features
               list(range(74, 108)), # POS frequencies
               list(range(108, 302)), # emotional category frequencies
-              list(range(-2, 0)) # gender ngrams
+              list(range(-2, 0)) # gender labels
               ]
     skf = skm.StratifiedKFold(n_splits=10)
     data_split = list(enumerate(skf.split(X, y)))
@@ -234,11 +197,9 @@ def ablation_analysis(X, y, clf):
             X_val = [X[val_ind] for val_ind in val_inds]
             y_val = [y[val_ind] for val_ind in val_inds]
     
-            # Classify and add the scores to be able to average later
             y_pred = classify(X_train, y_train, X_val, clf)
             scores.append(np.array(list(skmr.precision_recall_fscore_support(y_val, y_pred, average='micro')))[2])
     
-        # Compute the averaged score
         f_score = sum([x for x in scores]) / len(scores)
         overall_scores.append(f_score)
     
@@ -257,8 +218,9 @@ def ablation_analysis(X, y, clf):
     fig.set_title("Ablation analysis")
     fig.set_ylabel("F-scores")
     fig.set_xlabel("Features")
-    plt.savefig('Project_ablation2.png')
-    
+    plt.savefig('Project_ablation.png')
+
+# Calssify the data points in the DataFrame with the release dates    
 def classify_dates(X_train, y_train, X_test_file, clf):
     
     toy_df_dates = pd.read_csv(X_test_file)
@@ -303,7 +265,7 @@ def classify_dates(X_train, y_train, X_test_file, clf):
     average_date_feature_df = feature_df.groupby(['Release Date','Gender label']).mean()
     average_date_feature_df.to_csv('toys_with_dates_avg_features2.csv')
     
-    
+# Evaluate the accuracy of the gender label regex extractor    
 def info_extractor_eval(file, df_path, df_with_dates):
     label_set = get_manual_labels(file)
     inds = [it[0] for it in label_set]
@@ -331,38 +293,26 @@ def info_extractor_eval(file, df_path, df_with_dates):
     recall = TP/(TP+FN)
     f1 = 2*precision*recall/(precision+recall)
     return precision, recall, f1
-'''
-def plot_feature_evolution(feature_name):    
-    average_date_feature_df = pd.read_csv('toys_with_dates_avg_features.csv')
-    figure = plt.figure(dpi=200)
-    plt.plot()
-'''    
     
 def main(): 
-    X_train, X_test, y_train, y_test = load_tr_ts_data('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt',
-                                                       '/Users/mariiazamyrova/Downloads/toys_for_class.csv',
-                                                       '/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
+    # Split the manually labeled data into train and test sets
+    X_train, X_test, y_train, y_test = load_tr_ts_data('Project_manual_labels.txt', '/Users/mariiazamyrova/Downloads/toys_for_class.csv', '/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
     
+    # Compare classification performance for different algorithms
+    compare_classifiers(X_train, y_train, [MLPClassifier(), KNeighborsClassifier(), SVC(), tree.DecisionTreeClassifier(), ensemble.RandomForestClassifier()])
+    
+    # Get classifier validation peformance
+    validation = validate(X_train, y_train, MLPClassifier())
+    
+    # Perform ablation analysis
+    ablation_analysis(X_train, y_train, MLPClassifier())
+    
+    # Get classifier test set performance
+    pred_test = classify(X_train, y_train, X_test, MLPClassifier())
+    precision_recall_f1_test = list(skmr.precision_recall_fscore_support(y_test, pred_test))[:3]
+    
+    # Classify the data items from the DataFrame with release dates
     classify_dates(X_train, y_train, '/Users/mariiazamyrova/Downloads/toys_with_dates.csv', MLPClassifier())
-    #ablation_analysis(X_train, y_train, MLPClassifier())
-    
-    #validation = validate(X_train, y_train, MLPClassifier())
-    #print(validation)
-    
-    #compare_classifiers(X_train, y_train, [MLPClassifier(), MLPClassifier(activation='logistic', solver='lbfgs')])
-    
-    #compare_classifiers(X_train, y_train, [MLPClassifier(), KNeighborsClassifier(), SVC(), tree.DecisionTreeClassifier(), ensemble.RandomForestClassifier()])
-    
-    #pred_test = classify(X_train, y_train, X_test, MLPClassifier())
-    
-    #precision_recall_f1_test = list(skmr.precision_recall_fscore_support(y_test, pred_test))[:3]
-    #print(precision_recall_f1_test)
-    
-    #prec, rec, f1 = info_extractor_eval('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt',
-    #                                                   '/Users/mariiazamyrova/Downloads/toys_for_class.csv',
-    #                                                   '/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
-    
-    #print(prec, rec, f1)
     
     
 if __name__ == '__main__':

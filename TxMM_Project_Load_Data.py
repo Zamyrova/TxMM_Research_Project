@@ -5,19 +5,14 @@ Created on Fri Nov 25 11:40:17 2022
 
 @author: mariiazamyrova
 """
-import ijson
 import pandas as pd
 import numpy as np
-import math
 from html.parser import HTMLParser
 from nltk.corpus import wordnet as wn
-from datetime import datetime
 import regex as re
-from multiprocessing import Pool, cpu_count
-from nltk.corpus import wordnet
+from multiprocessing import Pool
 import inflect
 import random
-import pickle
 inflecter = inflect.engine()
 
 kid_nouns = ['kid', 'child', 'youngster', 'baby', 'teen', 'infant', 'toddler',
@@ -88,11 +83,12 @@ class MyHTMLParser(HTMLParser):
 
 parser = MyHTMLParser()
 
+# Load data from json to DataFrame
 def load_data(reader):
     data = [item for item in reader]
     return pd.concat(data)
-    #data_df.to_pickle(f"/Users/mariiazamyrova/Downloads/{fname}.pkl")
-    
+ 
+# Extract date from detail column
 def date_from_detail(detail):
     if pd.notna(detail):
         if ' Date first listed on Amazon:' in detail.keys():
@@ -101,6 +97,7 @@ def date_from_detail(detail):
     else:
         return np.nan
 
+# Extract date from Date column
 def date_from_date(date):
     months = r'(?:\bAugust|September|October|November|December|January|February|March|April|May|June|July\b)'
     pattern = ''.join([months, r'\s[0-9]{1,2}\,\s[0-9]{4}'])
@@ -109,17 +106,20 @@ def date_from_date(date):
         else: return np.nan
     else:
         return np.nan
-    
+
+# Combine dates found in the detail and date columns into a single column   
 def date_merger(col1, col2):
     if pd.isna(col2): return col1
     else: return col2
-    
+
+# Convert HTML markup to raw text with no markup tags    
 def html_to_text(val, as_ar = False, sep = ' '):
     if as_ar:
         return [' '.join(parser.get_text(v)) for v in val]
     else:
         return sep.join([' '.join(parser.get_text(v)) for v in val])
-    
+
+# Clean the data and format the DataFrame    
 def preprocess_data(df):
     # set all empty details values to NaN for later filtering
     df['details'].iloc[[not bool(det) for det in df['details'].values]] = np.nan
@@ -165,25 +165,7 @@ def preprocess_data(df):
     
     return df_final, df_with_dates
 
-def get_gender_label(text_set):
-    # 0 neutral
-    # 1 female
-    # -1 male
-    
-    f_pat = r'(?:\b'+'|'.join(female_nouns)+'\b)'
-    m_pat = r'(?:\b'+'|'.join(male_nouns)+'\b)'
-    n_pat = r'(?:\b'+'|'.join(neutral_nouns)+'\b)'
-    
-    f_and_m = r'(?:'+f_pat+r's?(?![^s])\s*(?:(?:\band\s|or\s|\&\s\b)|\s*\W)\s*'+m_pat+r's?(?![^s])\s?[\W|\s])'
-    m_and_f = r'(?:'+m_pat+r's?(?![^s])\s*(?:(?:\band\s|or\s|\&\s\b)|\s*\W)\s*'+f_pat+r's?(?![^s])\s?[\W|\s])'
-    
-    filter_pattern_f = r'(?:\s*(?:(?<!\b\snot\s\b)\bfor\b)\s(?:\w*\s)*(?:\s*'+f_pat+r's?(?![^s])\s?[\\|&]?[\W|\s]*)+)+'
-    filter_pattern_m = r'(?:\s*(?:(?<!\b\snot\s\b)\bfor\b)\s(?:\w*\s)*(?:\s*'+m_pat+r's?(?![^s])\s?[\\|&]?[\W|\s]*)+)+'
-    filter_pattern_n = r'\s*(?:\bfor\b)\s(?:\w*\s)*(?:(?:\s*'+n_pat+r's?(?![^s])\s?[\\|&]?[\W|\s]*)+|'+f_and_m+r'|'+m_and_f+r')' 
-    patterns = '|'.join([filter_pattern_m, filter_pattern_f, filter_pattern_n])
-    
-    return [re.findall(patterns, txt, flags=re.IGNORECASE, overlapped=True) for txt in text_set]
-
+# Extract gender labels from text
 def get_gender_labels(text):
     # 0 neutral
     # 1 female
@@ -198,16 +180,16 @@ def get_gender_labels(text):
     
     filter_pattern_f = r'(?:\s*(?:(?<!\b\snot\s\b)\bfor\b)\s(?:\w*\s)*(?:\s*'+f_pat+r's?(?![^s])\s?[\\|&]?[\W|\s]*)+)+'
     filter_pattern_m = r'(?:\s*(?:(?<!\b\snot\s\b)\bfor\b)\s(?:\w*\s)*(?:\s*'+m_pat+r's?(?![^s])\s?[\\|&]?[\W|\s]*)+)+'
-    filter_pattern_n = r'\s*(?:\bfor\b)\s(?:\w*\s)*(?:'+f_and_m+r'|'+m_and_f+r')' #(?:\s*'+n_pat+r's?(?![^s])\s?[\\|&]?[\W|\s]*)+|
+    filter_pattern_n = r'\s*(?:\bfor\b)\s(?:\w*\s)*(?:'+f_and_m+r'|'+m_and_f+r')' 
     patterns = [f_pat, m_pat, n_pat]
     
     return (re.findall(f_pat, text, flags=re.IGNORECASE, overlapped=True), 
             re.findall(m_pat, text, flags=re.IGNORECASE, overlapped=True),
             re.findall(n_pat, text, flags=re.IGNORECASE, overlapped=True))
     
-
+# Create the set of data points for manual labeling
 def get_label_set(df, df_dates, size=50):
-    label_set = get_manual_labels('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt')
+    label_set = get_manual_labels('Project_manual_labels.txt')
     indecies = [it[0] for it in label_set]
     def check_non_neutral(matches, gender = 1):
         words = []
@@ -229,12 +211,10 @@ def get_label_set(df, df_dates, size=50):
     f_and_m = r'(?:'+f_pat+r'\s*(?:(?:\band\s|or\s|\&\s\b)|\s*\W)\s*'+m_pat+r'[\W|\s])'
     m_and_f = r'(?:'+m_pat+r'\s*(?:(?:\band\s|or\s|\&\s\b)|\s*\W)\s*'+f_pat+r'[\W|\s])'
     
-    filter_pattern_f = r'(?:\s*(?:(?<!\b\snot\s\b)\bfor\b)\s(?:\w*\s)*(?:\s*'+f_pat+r's?\s?[\\|&]?[\W|\s])+)+'#(?!\s*[(?:\band\b)|(?:\bor\b)]\s'+m_pat+r'[\W|\s])'
-    filter_pattern_m = r'(?:\s*(?:(?<!\b\snot\s\b)\bfor\b)\s(?:\w*\s)*(?:\s*'+m_pat+r's?\s?[\\|&]?[\W|\s])+)+'#(?!\s*[(?:\band\b)|(?:\bor\b)]\s'+f_pat+r'[\W|\s])'
-    filter_pattern_n = r'\s*(?:\bfor\b)\s(?:\w*\s)*(?:'+f_and_m+r'|'+m_and_f+r')' #(?:\s*'+n_pat+r's?\s?[\\|&]?[\W|\s])+|
-    #filter_pattern_m = r'(?:\bfor\b)\s(?:\w*\s)*(?:\b'+'|'.join(male_nouns)+'\b)[s|\W]'
-    #filter_pattern_n = r'(?:\bfor\b)\s(?:\w*\s)*(?:\b'+'|'.join(neutral_nouns)+'\b)[s|\W]'
-    patterns = [filter_pattern_m]#, filter_pattern_f, filter_pattern_n]
+    filter_pattern_f = r'(?:\s*(?:(?<!\b\snot\s\b)\bfor\b)\s(?:\w*\s)*(?:\s*'+f_pat+r's?\s?[\\|&]?[\W|\s])+)+'
+    filter_pattern_m = r'(?:\s*(?:(?<!\b\snot\s\b)\bfor\b)\s(?:\w*\s)*(?:\s*'+m_pat+r's?\s?[\\|&]?[\W|\s])+)+'
+    filter_pattern_n = r'\s*(?:\bfor\b)\s(?:\w*\s)*(?:'+f_and_m+r'|'+m_and_f+r')' 
+    patterns = [filter_pattern_m, filter_pattern_f, filter_pattern_n]
 
     df_descrs_shuffle = list(enumerate([descr for descr in df_filt['description'].to_list() if type(descr)==str]))
     random.shuffle(df_descrs_shuffle)
@@ -249,7 +229,6 @@ def get_label_set(df, df_dates, size=50):
                 out = re.findall(pat, df_descrs_shuffle[i][1], flags=re.IGNORECASE, overlapped=True)
             except TypeError:
                 print(df_descrs_shuffle[i][1])
-            #out = get_gender_label(df_descrs_shuffle[i][1])
             if df_descrs_shuffle[i] not in df_descrs_to_label and df_descrs_shuffle[i][0] not in indecies:
                 if ind < 3:
                     out_neut = re.findall(filter_pattern_n, df_descrs_shuffle[i][1], flags=re.IGNORECASE, overlapped=True)
@@ -268,6 +247,7 @@ def get_label_set(df, df_dates, size=50):
             i+=1
     return df_descrs_to_label
 
+# Extract the manual gender labels from the txt file as a list
 def get_manual_labels(file):
     with open(file, 'r') as f:
         labeled_data = f.read().split('\n')
@@ -291,38 +271,33 @@ def get_manual_labels(file):
     
     return list(map(string_to_tuple, labeled_data))
 
-def main(): 
-    '''
+def main():
+
+    # Read the downloaded json dataset into a Pandas DataFrame
     file_meta="/Users/mariiazamyrova/Downloads/meta_Toys_and_Games.json"
     meta_reader = pd.read_json(file_meta, chunksize=10000, lines=True)
     
     toy_meta_df = load_data(meta_reader)
     
+    # Clean the data and distinguish the data to be used for classifier training data 
+    # and data to be used for analyzing how language changes through the years
     toys_for_class, toys_with_dates = preprocess_data(toy_meta_df)
     
-    toys_for_class.to_csv('toys_for_class.csv')
-    toys_with_dates.to_csv('toys_with_dates.csv')
-    '''
-    '''
-    
+    # Store the obtained DataFrames as CSV files
+    toys_for_class.to_csv('/Users/mariiazamyrova/Downloads/toys_for_class.csv')
+    toys_with_dates.to_csv('/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
+
+    # Read the DataFrames from CSV
     toys_for_class = pd.read_csv('/Users/mariiazamyrova/Downloads/toys_for_class.csv')
     toys_with_dates = pd.read_csv('/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
     
-    label_set = get_label_set(toys_for_class, toys_with_dates)
-    '''
-    #print(len([it for it in get_manual_labels('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt') if it[2]==1]))
-    #print(get_manual_labels('/Users/mariiazamyrova/Downloads/Project_manual_labels3.txt')[-16])
-    
-    
-    toys_for_class = pd.read_csv('/Users/mariiazamyrova/Downloads/toys_for_class.csv')
-    toys_with_dates = pd.read_csv('/Users/mariiazamyrova/Downloads/toys_with_dates.csv')
+    # Extract the set of data points to be manually labeled
     label_set = get_label_set(toys_for_class, toys_with_dates, size=100)
     
-    with open('Project_manual_labels7.txt', 'w') as f:
+    # Write the data item to a text file to label them by hand
+    with open('Project_manual_labels.txt', 'w') as f:
         for l in label_set:
             f.write(str(l)+'\n')
-    
-    
-    
+     
 if __name__ == '__main__':
     main()
